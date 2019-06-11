@@ -14,7 +14,7 @@ public:
     class iterator;
     class const_iterator;
 private:
-    static const int M = (maxn/(sizeof(node_t)+sizeof(Key)))<5? 4:(maxn/(sizeof(node_t)+sizeof(Key))-1);
+    static const int M = (maxn/(sizeof(ssize_t)+sizeof(Key)))<5? 4:(maxn/(sizeof(ssize_t)+sizeof(Key))-1);
     static const int L = (maxn/(sizeof(value_type)))<5? 4:(maxn/(sizeof(value_type))-1);
     static const int MMIN = (M+1)/2;
     static const int LMIN = (L+1)/2;
@@ -28,14 +28,14 @@ private:
         void setName(int id)
         {
             if (id<0 || id>9) throw "no more B plus Tree!";
-            str[0] = 'd'; 
-            str[1] = 'a'; 
+            str[0] = 'd';
+            str[1] = 'a';
             str[2] = 't';
             str[3] = static_cast<char> (id + '0');
-            str[4] = '.'; 
-            str[5] = 'd'; 
+            str[4] = '.';
+            str[5] = 'd';
             str[6] = 'a';
-            str[7] = 't'; 
+            str[7] = 't';
             str[8] = '\0';
         }
         void setName(char *_str)
@@ -83,9 +83,9 @@ private:
 
     struct internalNode
     {
-        offset_t offset;
-        node_t parent;
-        node_t chlid[M + 1];
+        ssize_t offset;
+        ssize_t parent;
+        ssize_t chlid[M + 1];
         Key key[M + 1];
         int num;
         bool type;//child is leaf or not
@@ -103,8 +103,8 @@ private:
 	FILE *fp;
     FileName fp_name;
     bpt_Info info;
-    bool fp_open=0;
-    bool exist=0;
+    bool fp_open;
+    bool exist;
 
 
     void open()
@@ -112,14 +112,14 @@ private:
         exist=1;
         if (fp_open==0) {
             fp=fopen(fp_name.str,"rb+");
-            if (fp==nullptr) 
+            if (fp==nullptr)
             {
                 exist=0;
                 fp = fopen(fp_name.str,"w");
                 fclose(fp);
                 fp=fopen(fp_name.str,"rb+");
-            } 
-            else read(&info,info_offset,1,sizeof(basicInfo));
+            }
+            else read(&info,info_offset,1,sizeof(bpt_Info));
             fp_open=1;
         }
     }
@@ -132,33 +132,33 @@ private:
     }
 
 
-    void read(void *place, offset_t offset, size_t num, size_t size) const
+    void read(void *place, ssize_t offset, size_t num, size_t size) const
     {
         if (fseek(fp,offset,SEEK_SET)) throw "open file failed!";
         fread(place,size,num,fp);
     }
 
 
-    void write(void *place, offset_t offset, size_t num, size_t size) const
+    void write(void *place, ssize_t offset, size_t num, size_t size) const
     {
         if (fseek(fp,offset, SEEK_SET)) throw "open file failed!";
         fwrite(place,size,num,fp);
     }
-    
-    
+
+
     FileName fp_from_name;
     FILE *fp_from;
 
 
-    void copy_read(void *place, offset_t offset, size_t num, size_t size) const
+    void copy_read(void *place,ssize_t offset, size_t num, size_t size) const
     {
         if (fseek(fp_from, offset, SEEK_SET)) throw "open file failed!";
         fread(place,size,num, fp_from);
     }
 
 
-	offset_t leaf_offset_temp;
-    void copy_leaf(offset_t offset, offset_t from_offset, offset_t parent_offset)
+	ssize_t leaf_offset_temp;
+    void copy_leaf(ssize_t offset, ssize_t from_offset, ssize_t parent_offset)
     {
         leafNode leaf, leaf_from, pre_leaf;
         copy_read(&leaf_from, from_offset, 1, sizeof(leafNode));
@@ -189,7 +189,7 @@ private:
     }
 
 
-    void copy_node(offset_t offset, offset_t from_offset, offset_t parent_offset)
+    void copy_node(ssize_t offset, ssize_t from_offset, ssize_t parent_offset)
     {
         internalNode node, node_from;
         copy_readFile(&node_from, from_offset, 1, sizeof(internalNode));
@@ -245,7 +245,7 @@ private:
         info.eof+=sizeof(leafNode);
 
         root.parent=0;
-        root.num=1; 
+        root.num=1;
         root.type=1;
         root.child[0]=leaf.offset;
 
@@ -259,7 +259,7 @@ private:
     }
 
 
-    ssize_t locate_leaf(const Key &key, offset_t offset) const
+    ssize_t locate_leaf(const Key &key, ssize_t offset) const
     {
         internalNode p;
         read(&p,offset,1,sizeof(internalNode));
@@ -293,7 +293,6 @@ private:
 			 * if leaf count is bigger than L then call split_leaf().
 
 			 */
-
     pair <iterator, OperationResult> insert_leaf(leafNode &leaf, const Key &key, const Value &value)
     {
         iterator ret;
@@ -455,7 +454,7 @@ public:
   class iterator {
       friend class BTree;
    private:
-       offset_t offset;
+       ssize_t offset;
        int place;
        BTree *from;
 
@@ -466,7 +465,7 @@ public:
         from = nullptr;
     }
 
-    iterator(BTree *_from, offset_t _offset=0, int _place=0)
+    iterator(BTree *_from, ssize_t _offset=0, int _place=0)
     {
         from = _from;
         offset = _offset;
@@ -517,7 +516,7 @@ public:
                 offset = p.next;
                 place = 0;
             }
-        } 
+        }
         else place++;
         return ret;
     }
@@ -565,7 +564,7 @@ public:
             offset = p.pre;
             from->read(&q, p.pre, 1, sizeof(leafNode));
             place = q.num-1;
-        } 
+        }
         else place--;
         return ret;
     }
@@ -587,7 +586,7 @@ public:
             offset = p.pre;
             from->read(&q, p.pre, 1, sizeof(leafNode));
             place = q.num-1;
-        } 
+        }
         else place--;
         return *this;
     }
@@ -614,7 +613,7 @@ public:
  class const_iterator {
     friend class BTree;
   private:
-    offset_t offset;        // offset of the leaf node
+    ssize_t offset;        // offset of the leaf node
     int place;				// place of the element in the leaf node
     const BTree *from;
   public:
@@ -659,16 +658,16 @@ public:
   // element, the second of the pair is Success if it is successfully inserted
   pair<iterator, OperationResult> insert(const Key& key, const Value& value)
   {
-      offset_t leaf_offset = locate_leaf(key,info.root);
+      ssize_t leaf_offset = locate_leaf(key,info.root);
       leafNode leaf;
-      
+
       if (info.size==0 || leaf_offset==0)
       {
           read(&leaf, info.head, 1, sizeof(leafNode));
           pair<iterator, OperationResult> ret = insert_leaf(leaf, key, value);
           if (ret.second==Fail) return ret;
 
-          offset_t offset = leaf.parent;
+          ssize_t offset = leaf.parent;
           internalNode node;
           while(offset!=0)
           {
@@ -771,7 +770,7 @@ public:
    */
   iterator find(const Key& key)
   {
-      offset_t leaf_offset=locate_leaf(key, info.root);
+      ssize_t leaf_offset=locate_leaf(key, info.root);
       if (leaf_offset==0) return end();
 
       leafNode leaf;
