@@ -6,7 +6,6 @@
 # include <map>
 namespace sjtu {
     int ID = 0;
-    int maxn=4096
 template <class Key, class Value, class Compare = std::less<Key> >
 class BTree {
 public:
@@ -784,18 +783,33 @@ public:
   // Insert: Insert certain Key-Value into the database
   // Return a pair, the first of the pair is the iterator point to the new
   // element, the second of the pair is Success if it is successfully inserted
-   pair<iterator, OperationResult> insert(const Key& key, const Value& value) {
-            openFile();
-            offset_t offset = locate_leaf(key,info.root);
-            leafNode leaf;
-            readFile(&leaf,offset,1,sizeof(leafNode));
-            std::pair<iterator,OperationResult> tmp;
-            tmp = insert_leaf(leaf,key,value);
-            pair<iterator,OperationResult> result;
-            result.first = tmp.first;
-            result.second = tmp.second;
-            return result;
-        }
+  pair<iterator, OperationResult> insert(const Key& key, const Value& value)
+  {
+      offset_t leaf_offset = locate_leaf(key, info.root);
+      leafNode leaf;
+
+      if (info.size==0 || leaf_offset==0)
+      {
+          readFile(&leaf, info.head, 1, sizeof(leafNode));
+          pair<iterator, OperationResult> ret = insert_leaf(leaf, key, value);
+          if (ret.second==Fail) return ret;
+
+          offset_t offset = leaf.par;
+          internalNode node;
+          while(offset!=0)
+          {
+              readFile(&node, offset, 1, sizeof(internalNode));
+              node.key[0] = key;
+              writeFile(&node, offset, 1, sizeof(internalNode));
+              offset = node.par;
+          }
+          return ret;
+      }
+
+      readFile(&leaf, leaf_offset, 1, sizeof(leafNode));
+      pair<iterator,OperationResult>ret = insert_leaf(leaf, key, value);
+      return ret;
+  }
 
 
   // Erase: Erase the Key-Value
@@ -908,4 +922,4 @@ public:
       return cend();
   }
 };
-}  // names
+}  // namespace sjtu
